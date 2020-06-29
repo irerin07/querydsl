@@ -7,7 +7,9 @@ import static study.querydsl.entity.QTeam.team;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import javax.persistence.EntityManager;
@@ -18,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.Team;
@@ -412,4 +416,120 @@ public class QuerydslBasicTest {
     }
 
   }
+
+  @Test
+  public void constant() throws Exception {
+    List<Tuple> tuples = queryFactory
+        .select(member.username, Expressions.constant("A"))
+        .from(member)
+        .fetch();
+    for (Tuple tuple : tuples) {
+      System.out.println("tuple = " + tuple);
+
+    }
+  }
+
+  @Test
+  public void concat() throws Exception {
+    List<String> strings = queryFactory
+        .select(member.username.concat("_").concat(member.age.stringValue()))
+        .from(member)
+        .where(member.username.eq("member1"))
+        .fetch();
+    for (String string : strings) {
+      System.out.println("string = " + string);
+    }
+  }
+
+  @Test
+  public void singleProjection() throws Exception {
+    List<String> fetch = queryFactory
+        .select(member.username)
+        .from(member)
+        .fetch();
+
+    for (String s : fetch) {
+      System.out.println("s = " + s);
+    }
+  }
+
+  @Test
+  public void multipleProjection() throws Exception {
+    List<Tuple> fetch = queryFactory
+        .select(member.username, member.age)
+        .from(member)
+        .fetch();
+
+    for (Tuple tuple : fetch) {
+      System.out.println("tuple = " + tuple.get(member.username));
+      System.out.println("tuple = " + tuple.get(member.age));
+    }
+  }
+
+  @Test
+  public void findDto() throws Exception {
+    List<MemberDto> dtos = em
+        .createQuery("select new study.querydsl.dto.MemberDto(m.username, m.age) from Member m",
+            MemberDto.class).getResultList();
+
+    for (MemberDto dto : dtos) {
+      System.out.println("dto = " + dto);
+    }
+  }
+
+  //setter필요
+  @Test
+  public void setterDto() throws Exception {
+    List<MemberDto> fetch = queryFactory
+        .select(Projections.bean(MemberDto.class,
+            member.username,
+            member.age))
+        .from(member)
+        .fetch();
+
+    for (MemberDto memberDto : fetch) {
+      System.out.println("memberDto = " + memberDto);
+    }
+  }
+
+  @Test
+  public void fieldDto() throws Exception {
+    List<MemberDto> fetch = queryFactory
+        .select(Projections.fields(MemberDto.class, member.username, member.age))
+        .from(member)
+        .fetch();
+
+    for (MemberDto memberDto : fetch) {
+      System.out.println("memberDto = " + memberDto);
+
+    }
+  }
+
+  @Test
+  public void constructorDto() throws Exception {
+    List<MemberDto> fetch = queryFactory
+        .select(Projections.constructor(MemberDto.class, member.username, member.age))
+        .from(member)
+        .fetch();
+
+    for (MemberDto memberDto : fetch) {
+      System.out.println("memberDto = " + memberDto);
+    }
+  }
+
+  //name이 null로 들어온다.
+  //member.username.as("name")을 사용하여 수정한다.
+  @Test
+  public void userDto() throws Exception {
+    List<UserDto> fetch = queryFactory
+        .select(Projections.fields(UserDto.class, member.username.as("name"), member.age))
+        .from(member)
+        .fetch();
+
+    for (UserDto userDto : fetch) {
+      System.out.println("userDto = " + userDto);
+    }
+
+  }
+
 }
